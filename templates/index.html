@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Driver Fatigue Detector</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(120deg, #2c3e50, #3498db);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+      min-height: 100vh;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    p {
+      font-size: 1rem;
+      color: #ecf0f1;
+    }
+
+    video {
+      border: 5px solid #fff;
+      border-radius: 10px;
+      margin-top: 1rem;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+
+    #result {
+      margin-top: 1.5rem;
+      font-size: 1.5rem;
+      font-weight: bold;
+      padding: 10px 20px;
+      border-radius: 8px;
+    }
+
+    .alert {
+      background-color: #2ecc71;
+      color: white;
+    }
+
+    .drowsy {
+      background-color: #e74c3c;
+      color: white;
+    }
+
+    canvas {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>🚗 Driver Fatigue Detection</h1>
+  <p>Live Monitoring - Powered by AI</p>
+
+  <video id="video" width="320" height="240" autoplay muted></video>
+  <canvas id="canvas" width="64" height="64"></canvas>
+
+  <div id="result">Status: Waiting...</div>
+
+  <!-- 🔊 Audio alert -->
+  <audio id="alertAudio" src="D:\Final Year\Computer Vision\New folder\static\alert.mp3"></audio>
+
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const resultDiv = document.getElementById('result');
+    const context = canvas.getContext('2d');
+    const alertAudio = document.getElementById('alertAudio');
+
+    // Start webcam stream
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then((stream) => {
+        video.srcObject = stream;
+      })
+      .catch((err) => {
+        console.error('Camera access error:', err);
+        alert('Camera access denied or not available.');
+      });
+
+    function captureAndPredict() {
+      context.drawImage(video, 0, 0, 64, 64);
+      const imageData = canvas.toDataURL('image/jpeg');
+
+      axios.post('/predict', { image: imageData })
+        .then(res => {
+          const label = res.data.label;
+          resultDiv.innerText = 'Status: ' + label;
+          resultDiv.className = label === 'Drowsy' ? 'drowsy' : 'alert';
+
+          // 🔊 Play voice alert if Drowsy
+          if (label === 'Drowsy') {
+            alertAudio.play();
+          }
+        })
+        .catch(err => {
+          console.error('Prediction error:', err);
+          resultDiv.innerText = 'Status: Error';
+          resultDiv.className = '';
+        });
+    }
+
+    // Auto-predict every 2 seconds
+    setInterval(captureAndPredict, 2000);
+
+    let userInteracted = false;
+
+document.body.addEventListener('click', () => {
+  userInteracted = true;
+  alertAudio.play().catch(err => {
+    console.warn('Audio play blocked:', err);
+  });
+}, { once: true });  // Only trigger once
+
+function captureAndPredict() {
+  context.drawImage(video, 0, 0, 64, 64);
+  const imageData = canvas.toDataURL('image/jpeg');
+
+  axios.post('/predict', { image: imageData })
+    .then(res => {
+      const label = res.data.label;
+      resultDiv.innerText = 'Status: ' + label;
+      resultDiv.className = label === 'Drowsy' ? 'drowsy' : 'alert';
+
+      // 🔊 Play voice alert if Drowsy
+      if (label === 'Drowsy' && userInteracted) {
+        alertAudio.play().catch(err => {
+          console.warn('Audio error:', err);
+        });
+      }
+    })
+    .catch(err => {
+      console.error('Prediction error:', err);
+      resultDiv.innerText = 'Status: Error';
+      resultDiv.className = '';
+    });
+}
+    
+  </script>
+</body>
+</html>

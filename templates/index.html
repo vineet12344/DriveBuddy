@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Driver Fatigue Detector</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <style>
     body {
@@ -32,7 +32,7 @@
       border: 5px solid #fff;
       border-radius: 10px;
       margin-top: 1rem;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
     }
 
     #result {
@@ -68,7 +68,7 @@
   <div id="result">Status: Waiting...</div>
 
   <!-- 🔊 Audio alert -->
-  <audio id="alertAudio" src="D:\Final Year\Computer Vision\New folder\static\alert.mp3"></audio>
+  <audio id="alertAudio" src="/static/alert.mp3"></audio>
 
   <script>
     const video = document.getElementById('video');
@@ -77,7 +77,6 @@
     const context = canvas.getContext('2d');
     const alertAudio = document.getElementById('alertAudio');
 
-    // Start webcam stream
     navigator.mediaDevices.getUserMedia({ video: true })
       .then((stream) => {
         video.srcObject = stream;
@@ -86,6 +85,14 @@
         console.error('Camera access error:', err);
         alert('Camera access denied or not available.');
       });
+
+    let userInteracted = false;
+
+    // Required for audio autoplay on mobile
+    document.body.addEventListener('click', () => {
+      userInteracted = true;
+      alertAudio.play().catch(() => {}); // Preload permission
+    }, { once: true });
 
     function captureAndPredict() {
       context.drawImage(video, 0, 0, 64, 64);
@@ -97,9 +104,9 @@
           resultDiv.innerText = 'Status: ' + label;
           resultDiv.className = label === 'Drowsy' ? 'drowsy' : 'alert';
 
-          // 🔊 Play voice alert if Drowsy
-          if (label === 'Drowsy') {
-            alertAudio.play();
+          if (label === 'Drowsy' && userInteracted) {
+            alertAudio.src = "/static/alert.mp3?t=" + new Date().getTime(); // prevent caching
+            alertAudio.play().catch(err => console.warn('Audio play error:', err));
           }
         })
         .catch(err => {
@@ -109,42 +116,7 @@
         });
     }
 
-    // Auto-predict every 2 seconds
     setInterval(captureAndPredict, 2000);
-
-    let userInteracted = false;
-
-document.body.addEventListener('click', () => {
-  userInteracted = true;
-  alertAudio.play().catch(err => {
-    console.warn('Audio play blocked:', err);
-  });
-}, { once: true });  // Only trigger once
-
-function captureAndPredict() {
-  context.drawImage(video, 0, 0, 64, 64);
-  const imageData = canvas.toDataURL('image/jpeg');
-
-  axios.post('/predict', { image: imageData })
-    .then(res => {
-      const label = res.data.label;
-      resultDiv.innerText = 'Status: ' + label;
-      resultDiv.className = label === 'Drowsy' ? 'drowsy' : 'alert';
-
-      // 🔊 Play voice alert if Drowsy
-      if (label === 'Drowsy' && userInteracted) {
-        alertAudio.play().catch(err => {
-          console.warn('Audio error:', err);
-        });
-      }
-    })
-    .catch(err => {
-      console.error('Prediction error:', err);
-      resultDiv.innerText = 'Status: Error';
-      resultDiv.className = '';
-    });
-}
-    
   </script>
 </body>
 </html>

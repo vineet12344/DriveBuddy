@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify
 from gtts import gTTS
 import numpy as np
 import base64
@@ -7,10 +7,9 @@ import os
 from PIL import Image
 from tensorflow.keras.models import load_model
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static', template_folder='templates')
 
-# Update this path based on your system
-MODEL_PATH = r'model/driver_fatigue_model.h5'
+MODEL_PATH = 'model/driver_fatigue_model.h5'
 
 # Load the model
 if os.path.exists(MODEL_PATH):
@@ -41,6 +40,7 @@ def predict():
         prediction = model.predict(img)[0][0]
         label = 'Drowsy' if prediction > 0.5 else 'Alert'
 
+        # Save audio alert only if drowsy
         if label == 'Drowsy':
             tts = gTTS("You are in danger. Press brake!", lang='en')
             tts.save("static/alert.mp3")
@@ -52,4 +52,4 @@ def predict():
         return jsonify({'error': 'Prediction failed'}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()

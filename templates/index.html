@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <title>Driver Fatigue Detector</title>
@@ -58,6 +59,7 @@
     }
   </style>
 </head>
+
 <body>
   <h1>🚗 Driver Fatigue Detection</h1>
   <p>Live Monitoring - Powered by AI</p>
@@ -68,7 +70,9 @@
   <div id="result">Status: Waiting...</div>
 
   <!-- 🔊 Audio alert -->
-  <audio id="alertAudio" src="/static/alert.mp3"></audio>
+  <!-- <audio id="alertAudio" src="/static/alert.mp3"></audio> -->
+   <audio id="alertAudio" src="{{ url_for('static', filename='alert.mp3') }}"></audio>
+
 
   <script>
     const video = document.getElementById('video');
@@ -91,8 +95,11 @@
     // Required for audio autoplay on mobile
     document.body.addEventListener('click', () => {
       userInteracted = true;
-      alertAudio.play().catch(() => {}); // Preload permission
+      alertAudio.src = "/static/alert.mp3"; // preload once
+      alertAudio.load();
+      console.log("🔊 Audio unlocked and preloaded");
     }, { once: true });
+
 
     function captureAndPredict() {
       context.drawImage(video, 0, 0, 64, 64);
@@ -105,7 +112,7 @@
           resultDiv.className = label === 'Drowsy' ? 'drowsy' : 'alert';
 
           if (label === 'Drowsy' && userInteracted) {
-            alertAudio.src = "/static/alert.mp3?t=" + new Date().getTime(); // prevent caching
+            alertAudio.currentTime = 0; // restart from beginning
             alertAudio.play().catch(err => console.warn('Audio play error:', err));
           }
         })
@@ -119,4 +126,5 @@
     setInterval(captureAndPredict, 2000);
   </script>
 </body>
+
 </html>
